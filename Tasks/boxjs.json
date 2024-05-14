@@ -871,7 +871,7 @@
       "name": "TestFlight公测自动加入",
       "descs_html": [
         "<p style='margin-left:20px;color:#3498db;'>@mutu佬授权后修改脚本适配其他代理工具</p>",
-        "<a style='margin-left:20px;color:#ff0000;' target='_blank' href='https://raw.githubusercontent.com/githubdulong/Script/master/Auto_join_TF.js'>原脚本</a>"
+        "<a style='margin-left:20px;color:#ff0000;' target='_blank' href='https://raw.githubusercontent.com/Viyeuxa/X/main/Tasks/AutoJoinTF.js'>原脚本</a>"
       ],
       "keys": [
         "tf_key",
