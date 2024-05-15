@@ -86,7 +86,7 @@ const getParams = () => {
         $.setdata(request_id, 'tf_request_id')
         $.setdata(key, 'tf_key')
         const encrypt = (str) => str.slice(0, 4) + '***********'
-        $.msg($.name, 'Lấy tham số TF thành công', `𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐢𝐝: ${encrypt(session_id)}\n𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐝𝐢𝐠𝐞𝐬𝐭: ${encrypt(session_digest)}\n𝐫𝐞𝐪𝐮𝐞𝐬𝐭_𝐢𝐝: ${encrypt(request_id)}\n𝐤𝐞𝐲: ${encrypt(key)}`)
+        $.msg($.name, 'Lấy tham số TF thành công', `𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐢𝐝: ${session_id}\n𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐝𝐢𝐠𝐞𝐬𝐭: ${session_digest}\n𝐫𝐞𝐪𝐮𝐞𝐬𝐭_𝐢𝐝: ${request_id}\n𝐤𝐞𝐲: ${key}`)
     }
     // 打开链接需要抓取的参数
     else if (/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/.test(url)) {
