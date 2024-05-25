@@ -1,5 +1,5 @@
-const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入') //13:57
-$.isRequest = () => 'undefined' != typeof $request
+const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入')
+$.isRequest = () => typeof $request !== 'undefined'
 
 const [
     HeadersStr,
@@ -13,14 +13,13 @@ var HeadersList = HeadersStr ? JSON.parse(HeadersStr) : []
 
 const inArray = (value, array = APP_IDS, separator = '#') => array.findIndex((item) => item.split(separator)[0] === value)
 
-// Lưu thời gian kiểm tra cuối cùng
 const LAST_CHECK_TIMES = $.getdata('tf_last_check_times') ? JSON.parse($.getdata('tf_last_check_times')) : {}
 const LAST_HEADER_USE = $.getdata('tf_last_header_use') ? JSON.parse($.getdata('tf_last_header_use')) : {}
 
 const getParams = () => {
     const { url, headers: header } = $request
     const handler = (appId) => {
-        const status = '0' // 0: 未加入| 1: 已加入
+        const status = '0' // 0: 未加入 | 1: 已加入
         const CACHE_APP_ID = `${appId}#${status}`
         if (!APP_IDS.includes(CACHE_APP_ID)) {
             APP_IDS.push(CACHE_APP_ID)
@@ -31,7 +30,6 @@ const getParams = () => {
         }
     }
 
-    // Lấy Key từ URL v3/accounts
     if (/^https:\/\/testflight\.apple\.com\/v3\/accounts\/.*\/apps$/.test(url)) {
         const headers = Object.fromEntries(Object.entries(header).map(([key, value]) => [key.toLowerCase(), value]))
         const session_id = headers['x-session-id']
@@ -50,12 +48,9 @@ const getParams = () => {
         $.setdata(JSON.stringify(HeadersList), 'tf_headers')
         $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
         $.setdata(key, 'tf_key')
-        const encrypt = (str) => str.slice(0, 4) + '***********'
         $.msg($.name, 'Lấy tham số TF thành công', 
             `session_id: ${session_id}\nsession_digest: ${session_digest}\nrequest_id: ${request_id}\nkey: ${key}\nSố lượng Headers: ${HeadersList.length}\nSố lượng APP_ID: ${APP_IDS.length}\nAPP_ID hiện tại: ${APP_IDS.map(id => id.split('#')[0]).join(', ')}`)
-    }
-    // Lấy app_id từ URL join
-    else if (/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/.test(url)) {
+    } else if (/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/.test(url)) {
         const appIdMatch = url.match(/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/)
         if (appIdMatch && appIdMatch[1]) {
             let appId = appIdMatch[1]
@@ -92,7 +87,7 @@ const TF_Join = (app_id, headers) => {
                 } else if (response.status === 404) {
                     resolve('app_not_exist')
                 } else {
-                    reject(`${app_id} Tham gia thất bại: ${error hoặc `Trạng thái ${response.status}`}`)
+                    reject(`${app_id} Tham gia thất bại: ${error || `Trạng thái ${response.status}`}`)
                 }
             }
         )
