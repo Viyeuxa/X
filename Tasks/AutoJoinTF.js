@@ -1,4 +1,4 @@
-const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入') //13:28
+const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入') //13:53
 $.isRequest = () => 'undefined' != typeof $request
 const [
     HeadersStr,
@@ -37,13 +37,19 @@ const getParams = () => {
         const request_id = headers['x-request-id']
         const key = /\/accounts\/(.*?)\/apps/.exec(url)?.[1] || null
 
-        HeadersList.push({ 'X-Session-Id': session_id, 'X-Session-Digest': session_digest, 'X-Request-Id': request_id, 'Key': key })
+        HeadersList.push({ 
+            'X-Session-Id': session_id, 
+            'X-Session-Digest': session_digest, 
+            'X-Request-Id': request_id, 
+            'Key': key, 
+            'User-Agent': headers['user-agent']
+        })
         LAST_HEADER_USE[HeadersList.length - 1] = Date.now() - (6 * 60 * 1000) // Đặt thời gian sử dụng cuối cùng của header mới
         $.setdata(JSON.stringify(HeadersList), 'tf_headers')
         $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
         $.setdata(key, 'tf_key')
         const encrypt = (str) => str.slice(0, 4) + '***********'
-         $.msg($.name, 'Lấy tham số TF thành công', 
+        $.msg($.name, 'Lấy tham số TF thành công', 
             `session_id: ${session_id}\nsession_digest: ${session_digest}\nrequest_id: ${request_id}\nkey: ${key}\nSố lượng Headers: ${HeadersList.length}\nSố lượng APP_ID: ${APP_IDS.length}\nAPP_ID hiện tại: ${APP_IDS.map(id => id.split('#')[0]).join(', ')}`)
     }
     // Lấy app_id từ URL join
@@ -67,7 +73,7 @@ const TF_Join = (app_id, headers) => {
                     'X-Session-Id': headers['X-Session-Id'],
                     'X-Session-Digest': headers['X-Session-Digest'],
                     'X-Request-Id': headers['X-Request-Id'],
-                    'User-Agent': 'Oasis/3.5.1 OasisBuild/425.2 iOS/17.5 model/iPhone12,1 hwp/t8030 build/21F79 (6; dt:203) AMS/1 TSE/0'
+                    'User-Agent': headers['User-Agent']
                 }
             },
             (error, response, data) => {
@@ -84,7 +90,7 @@ const TF_Join = (app_id, headers) => {
                 } else if (response.status === 404) {
                     resolve('app_not_exist')
                 } else {
-                    reject(`${app_id} Tham gia thất bại: ${error || `Trạng thái ${response.status}`}`)
+                    reject(`${app_id} Tham gia thất bại: ${error hoặc `Trạng thái ${response.status}`}`)
                 }
             }
         )
@@ -155,6 +161,7 @@ const TF_Join = (app_id, headers) => {
 })()
     .catch((e) => $.log('', `❗️${$.name}, Lỗi!`, e))
     .finally(() => $.done({}))
+
 
 
 // prettier-ignore
