@@ -30,6 +30,7 @@ const getParams = () => {
     const handler = (appId) => {
         const status = '0' // 0: 未加入| 1: 已加入
         const CACHE_APP_ID = `${appId}#${status}`
+         $.msg($.name, '', `ID ứng dụng: ${appId} là CACHE_APP_ID`)
         if (!APP_IDS.includes(CACHE_APP_ID)) {
             APP_IDS.push(CACHE_APP_ID)
             $.setdata(APP_IDS.join(','), 'tf_app_ids')
