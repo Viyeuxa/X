@@ -1,31 +1,25 @@
-const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入') //12:03
+const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入') //12:48
 $.isRequest = () => 'undefined' != typeof $request
 const [
-    Key,
-    SessionId,
-    SessionDigest,
-    RequestId,
+    HeadersStr,
     APP_ID_Str,
     LOON_COUNT = 1,
     INTERVAL = 0
-] = ['tf_key', 'tf_session_id', 'tf_session_digest', 'tf_request_id', 'tf_app_ids', 'tf_loon_count', 'tf_interval'].map((key) => $.getdata(key))
+] = ['tf_headers', 'tf_app_ids', 'tf_loon_count', 'tf_interval'].map((key) => $.getdata(key))
 var APP_IDS = APP_ID_Str ? APP_ID_Str.split(',') : []
-var HeadersList = Key ? [{ 'X-Session-Id': SessionId, 'X-Session-Digest': SessionDigest, 'X-Request-Id': RequestId }] : []
+var HeadersList = HeadersStr ? JSON.parse(HeadersStr) : []
 
-const baseURL = `https://testflight.apple.com/v3/accounts/${Key}/ru/`
 const inArray = (value, array = APP_IDS, separator = '#') => array.findIndex((item) => item.split(separator)[0] === value)
 
 // Lưu thời gian kiểm tra cuối cùng
 const LAST_CHECK_TIMES = $.getdata('tf_last_check_times') ? JSON.parse($.getdata('tf_last_check_times')) : {}
 const LAST_HEADER_USE = $.getdata('tf_last_header_use') ? JSON.parse($.getdata('tf_last_header_use')) : {}
 
-// Lấy thông tin app_id và headers
 const getParams = () => {
     const { url, headers: header } = $request
     const handler = (appId) => {
         const status = '0' // 0: 未加入| 1: 已加入
         const CACHE_APP_ID = `${appId}#${status}`
-        $.msg($.name, '', `ID ứng dụng: ${appId} là CACHE_APP_ID`)
         if (!APP_IDS.includes(CACHE_APP_ID)) {
             APP_IDS.push(CACHE_APP_ID)
             $.setdata(APP_IDS.join(','), 'tf_app_ids')
@@ -34,31 +28,41 @@ const getParams = () => {
             $.msg($.name, '', `ID ứng dụng: ${appId} đã tồn tại, không cần thêm lại.`)
         }
     }
-
     if (/^https:\/\/testflight\.apple\.com\/v3\/accounts\/.*\/apps$/.test(url)) {
         const headers = Object.fromEntries(Object.entries(header).map(([key, value]) => [key.toLowerCase(), value]))
         const session_id = headers['x-session-id']
         const session_digest = headers['x-session-digest']
         const request_id = headers['x-request-id']
         const key = /\/accounts\/(.*?)\/apps/.exec(url)?.[1] || null
+
+        // Lấy app_id từ URL nếu có
+        const appIdMatch = url.match(/\/accounts\/(.*?)\/apps/)
+        if (appIdMatch && appIdMatch[1]) {
+            let appId = appIdMatch[1]
+            handler(appId)
+        }
+
         HeadersList.push({ 'X-Session-Id': session_id, 'X-Session-Digest': session_digest, 'X-Request-Id': request_id })
         LAST_HEADER_USE[HeadersList.length - 1] = Date.now() - (6 * 60 * 1000) // Đặt thời gian sử dụng cuối cùng của header mới
         $.setdata(JSON.stringify(HeadersList), 'tf_headers')
         $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
-        $.setdata(session_id, 'tf_session_id')
-        $.setdata(session_digest, 'tf_session_digest')
-        $.setdata(request_id, 'tf_request_id')
         $.setdata(key, 'tf_key')
         const encrypt = (str) => str.slice(0, 4) + '***********'
-        $.msg($.name, 'Lấy tham số TF thành công', `session_id: ${session_id}\nsession_digest: ${session_digest}\nrequest_id: ${request_id}\nkey: ${key}`)
+        $.msg($.name, 'Lấy tham số TF thành công', 
+            `session_id: ${session_id}\nsession_digest: ${session_digest}\nrequest_id: ${request_id}\nkey: ${key}\nSố lượng Headers: ${HeadersList.length}\nSố lượng APP_ID: ${APP_IDS.length}`)
     } else if (/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/.test(url)) {
-        const appIdMatch = url.match(/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/)
-        if (appIdMatch && appIdMatch[1]) {
-            let appId = appIdMatch[1]
-            handler(appId)
-        } else {
-            $.log('Không bắt được APP_ID của TestFlight')
-        }
+        const headers = Object.fromEntries(Object.entries(header).map(([key, value]) => [key.toLowerCase(), value]))
+        const session_id = headers['x-session-id']
+        const session_digest = headers['x-session-digest']
+        const request_id = headers['x-request-id']
+        const key = /\/join\/(.*?)$/.exec(url)?.[1] || null
+        HeadersList.push({ 'X-Session-Id': session_id, 'X-Session-Digest': session_digest, 'X-Request-Id': request_id })
+        LAST_HEADER_USE[HeadersList.length - 1] = Date.now() - (6 * 60 * 1000) // Đặt thời gian sử dụng cuối cùng của header mới
+        $.setdata(JSON.stringify(HeadersList), 'tf_headers')
+        $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
+        handler(key)
+        $.msg($.name, 'Lấy tham số TF thành công', 
+            `session_id: ${session_id}\nsession_digest: ${session_digest}\nrequest_id: ${request_id}\nSố lượng Headers: ${HeadersList.length}\nSố lượng APP_ID: ${APP_IDS.length}`)
     } else if (/v3\/accounts\/.*\/ru/.test(url)) {
         const reg = /v3\/accounts\/.*\/ru\/(.*[^\/accept])/
         const appId = reg.exec(url)[1]
@@ -70,7 +74,7 @@ const TF_Join = (app_id, headers) => {
     return new Promise((resolve, reject) => {
         $.post(
             {
-                url: `${baseURL}${app_id}/accept`,
+                url: `https://testflight.apple.com/v3/accounts/${headers['X-Session-Id']}/ru/${app_id}/accept`,
                 headers
             },
             (error, response, data) => {
