@@ -43,8 +43,8 @@ const getParams = () => {
         $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
         $.setdata(key, 'tf_key')
         const encrypt = (str) => str.slice(0, 4) + '***********'
-        $.msg($.name, 'Lấy tham số TF thành công', 
-            `session_id: ${session_id}\nsession_digest: ${session_digest}\nrequest_id: ${request_id}\nkey: ${key}\nSố lượng Headers: ${HeadersList.length}\nSố lượng APP_ID: ${APP_IDS.length}`)
+         $.msg($.name, 'Lấy tham số TF thành công', 
+            `session_id: ${session_id}\nsession_digest: ${session_digest}\nrequest_id: ${request_id}\nkey: ${key}\nSố lượng Headers: ${HeadersList.length}\nSố lượng APP_ID: ${APP_IDS.length}\nAPP_ID hiện tại: ${APP_IDS.map(id => id.split('#')[0]).join(', ')}`)
     }
     // Lấy app_id từ URL join
     else if (/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/.test(url)) {
