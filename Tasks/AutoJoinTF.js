@@ -65,7 +65,7 @@ const TF_Join = (app_id, headers) => {
     return new Promise((resolve, reject) => {
         $.post(
             {
-                url: `https://testflight.apple.com/v3/accounts/${headers['Key']}/ru/${app_id}/accept`,
+                url: `https://testflight.apple.com/v3/accounts/${headers['X-Session-Id']}/ru/${app_id}/accept`,
                 headers: {
                     'X-Session-Id': headers['X-Session-Id'],
                     'X-Session-Digest': headers['X-Session-Digest'],
