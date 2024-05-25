@@ -1,36 +1,25 @@
-const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入')
+const $ = new Env('𝐓𝐞𝐬𝐭𝐅𝐥𝐢𝐠𝐡𝐭自动加入') //12:00
 $.isRequest = () => 'undefined' != typeof $request
 const [
-    // ----------
-    // TF参数
-    Key,
-    SessionId,
-    SessionDigest,
-    RequestId,
-    // ----------
-    // 应用参数
+    HeadersStr,
     APP_ID_Str,
-    // ----------
-    // 配置参数
-    LOON_COUNT = 1, // 每次执行循环执行多少次 默认1
-    INTERVAL = 0 // 等待时间, 单位: 秒 默认0
-] = ['tf_key', 'tf_session_id', 'tf_session_digest', 'tf_request_id', 'tf_app_ids', 'tf_loon_count', 'tf_interval'].map((key) => $.getdata(key))
+    LOON_COUNT = 1,
+    INTERVAL = 0
+] = ['tf_headers', 'tf_app_ids', 'tf_loon_count', 'tf_interval'].map((key) => $.getdata(key))
 var APP_IDS = APP_ID_Str ? APP_ID_Str.split(',') : []
-const baseURL = `https://testflight.apple.com/v3/accounts/${Key}/ru/`
-const headers = {
-    'X-Session-Id': SessionId,
-    'X-Session-Digest': SessionDigest,
-    'X-Request-Id': RequestId,
-    'User-Agent': 'Oasis/3.5.1 OasisBuild/425.2 iOS/17.5 model/iPhone12,1 hwp/t8030 build/21F79 (6; dt:203) AMS/1 TSE/0'
-}
+var HeadersList = HeadersStr ? JSON.parse(HeadersStr) : []
+
 const inArray = (value, array = APP_IDS, separator = '#') => array.findIndex((item) => item.split(separator)[0] === value)
-// 获取参数
+
+// Lưu thời gian kiểm tra cuối cùng
+const LAST_CHECK_TIMES = $.getdata('tf_last_check_times') ? JSON.parse($.getdata('tf_last_check_times')) : {}
+const LAST_HEADER_USE = $.getdata('tf_last_header_use') ? JSON.parse($.getdata('tf_last_header_use')) : {}
+
 const getParams = () => {
     const { url, headers: header } = $request
     const handler = (appId) => {
         const status = '0' // 0: 未加入| 1: 已加入
         const CACHE_APP_ID = `${appId}#${status}`
-         $.msg($.name, '', `ID ứng dụng: ${appId} là CACHE_APP_ID`)
         if (!APP_IDS.includes(CACHE_APP_ID)) {
             APP_IDS.push(CACHE_APP_ID)
             $.setdata(APP_IDS.join(','), 'tf_app_ids')
@@ -39,62 +28,50 @@ const getParams = () => {
             $.msg($.name, '', `ID ứng dụng: ${appId} đã tồn tại, không cần thêm lại.`)
         }
     }
-    // 打开TF APP抓取的信息参数
     if (/^https:\/\/testflight\.apple\.com\/v3\/accounts\/.*\/apps$/.test(url)) {
         const headers = Object.fromEntries(Object.entries(header).map(([key, value]) => [key.toLowerCase(), value]))
         const session_id = headers['x-session-id']
         const session_digest = headers['x-session-digest']
         const request_id = headers['x-request-id']
         const key = /\/accounts\/(.*?)\/apps/.exec(url)?.[1] || null
-        $.setdata(session_id, 'tf_session_id')
-        $.setdata(session_digest, 'tf_session_digest')
-        $.setdata(request_id, 'tf_request_id')
-        $.setdata(key, 'tf_key')
-        const encrypt = (str) => str.slice(0, 4) + '***********'
-        $.msg($.name, 'Lấy tham số TF thành công', `𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐢𝐝: ${session_id}\n𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐝𝐢𝐠𝐞𝐬𝐭: ${session_digest}\n𝐫𝐞𝐪𝐮𝐞𝐬𝐭_𝐢𝐝: ${request_id}\n𝐤𝐞𝐲: ${key}`)
-    }
-    // 打开链接需要抓取的参数
-    else if (/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/.test(url)) {
-        const appIdMatch = url.match(/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/)
+
+        // Lấy app_id từ URL nếu có
+        const appIdMatch = url.match(/\/accounts\/(.*?)\/apps/)
         if (appIdMatch && appIdMatch[1]) {
             let appId = appIdMatch[1]
             handler(appId)
-        } else {
-            $.log('Không bắt được APP_ID của TestFlight')
         }
+
+        HeadersList.push({ 'X-Session-Id': session_id, 'X-Session-Digest': session_digest, 'X-Request-Id': request_id })
+        LAST_HEADER_USE[HeadersList.length - 1] = Date.now() - (6 * 60 * 1000) // Đặt thời gian sử dụng cuối cùng của header mới
+        $.setdata(JSON.stringify(HeadersList), 'tf_headers')
+        $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
+        $.setdata(key, 'tf_key')
+        const encrypt = (str) => str.slice(0, 4) + '***********'
+        $.msg($.name, 'Lấy tham số TF thành công', `𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐢𝐝: ${session_id}\n𝐬𝐞𝐬𝐬𝐢𝐨𝐧_𝐝𝐢𝐠𝐞𝐬𝐭: ${session_digest}\n𝐫𝐞𝐪𝐮𝐞𝐬𝐭_𝐢𝐝: ${request_id}\n𝐤𝐞𝐲: ${key}`)
+    } else if (/^https:\/\/testflight\.apple\.com\/join\/([A-Za-z0-9]+)$/.test(url)) {
+        const headers = Object.fromEntries(Object.entries(header).map(([key, value]) => [key.toLowerCase(), value]))
+        const session_id = headers['x-session-id']
+        const session_digest = headers['x-session-digest']
+        const request_id = headers['x-request-id']
+        const key = /\/join\/(.*?)$/.exec(url)?.[1] || null
+        HeadersList.push({ 'X-Session-Id': session_id, 'X-Session-Digest': session_digest, 'X-Request-Id': request_id })
+        LAST_HEADER_USE[HeadersList.length - 1] = Date.now() - (6 * 60 * 1000) // Đặt thời gian sử dụng cuối cùng của header mới
+        $.setdata(JSON.stringify(HeadersList), 'tf_headers')
+        $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
+        handler(key)
     } else if (/v3\/accounts\/.*\/ru/.test(url)) {
         const reg = /v3\/accounts\/.*\/ru\/(.*[^\/accept])/
         const appId = reg.exec(url)[1]
         handler(appId)
     }
 }
-// 检查TF应用
-const TF_Check = (app_id) => {
-    return new Promise((resolve, reject) => {
-        $.get({ url: baseURL + app_id, headers }, (error, response, data) => {
-            if (error) {
-                return reject(`${app_id} Yêu cầu mạng thất bại: ${error}`)
-            }
-            if (response.status !== 200) {
-                APP_IDS.splice(inArray(app_id), 1)
-                $.setdata(APP_IDS.join(','), 'tf_app_ids')
-                $.msg('Không phải là liên kết TestFlight hợp lệ', '', `${app_id} đã bị xóa`)
-                return reject(`${app_id} Không phải liên kết hợp lệ: Trạng thái ${response.status}，xóa APP_ID`)
-            }
-            const appData = $.toObj(data)
-            if (!appData) {
-                return reject(`${app_id} Phân tích dữ liệu thất bại: ${data}`)
-            }
-            resolve(appData)
-        })
-    })
-}
-// 加入TF应用
-const TF_Join = (app_id) => {
+
+const TF_Join = (app_id, headers) => {
     return new Promise((resolve, reject) => {
         $.post(
             {
-                url: baseURL + app_id + '/accept',
+                url: `https://testflight.apple.com/v3/accounts/${headers['X-Session-Id']}/ru/${app_id}/accept`,
                 headers
             },
             (error, response, data) => {
@@ -103,7 +80,13 @@ const TF_Join = (app_id) => {
                     if (!jsonBody) {
                         return reject(`${app_id} Yêu cầu tham gia phản hồi phân tích thất bại: ${data}`)
                     }
-                    resolve(jsonBody)
+                    resolve(`🎉 Tham gia thành công ${jsonBody.data.name}`)
+                } else if (response.status === 409 || response.status === 429) {
+                    resolve(`${app_id} Đã đầy hoặc bị hạn chế, bỏ qua`)
+                } else if (response.status === 401) {
+                    resolve('header_not_valid')
+                } else if (response.status === 404) {
+                    resolve('app_not_exist')
                 } else {
                     reject(`${app_id} Tham gia thất bại: ${error || `Trạng thái ${response.status}`}`)
                 }
@@ -111,36 +94,60 @@ const TF_Join = (app_id) => {
         )
     })
 }
-// 立即执行函数
+
 ;(async () => {
     if ($.isRequest()) return getParams()
-    if (!Key || !SessionId || !SessionDigest || !RequestId) return $.msg('Thiếu tham số', 'Vui lòng lấy tham số trước')
+    if (HeadersList.length === 0) return $.msg('Thiếu headers', 'Vui lòng lấy headers trước')
+    if (HeadersList.length < 12 * APP_IDS.length) {
+        return $.msg('Thiếu headers', 'Vui lòng lấy thêm headers để đảm bảo đủ 12 headers cho mỗi app_id')
+    }
+
     const noJoinExists = APP_IDS.some((app_id) => app_id.split('#')[1] === '0')
     if (!noJoinExists) return $.log('Không có APP_ID cần tham gia')
+
+    const now = Date.now();
+    const interval = 6 * 60 * 1000; // 6 phút
+
     for (let app_id of APP_IDS) {
         const [appId, status] = app_id.split('#')
         if (status === '0') {
-            for (let i = 0; i < LOON_COUNT; i++) {
-                INTERVAL && (await $.wait(INTERVAL * 1000))
-                try {
-                    const appData = await TF_Check(appId)
-                    if (!appData?.data) $.log(`${appId} Không thể chấp nhận lời mời, tiếp tục thực thi`)
-                    if (appData.data?.status === 'OPEN') {
-                        $.log(`${appId}(${appData.data.app.name})`, `Mở để tham gia, đang tham gia...`)
-                        const jsonBody = await TF_Join(appId)
-                        $.log(`🎉Tham gia thành công`)
-                        $.msg(`${jsonBody.data.name}`, 'TestFlight tham gia thành công')
+            const lastCheck = LAST_CHECK_TIMES[appId] || 0;
+            if (now - lastCheck < interval) {
+                $.log(`${appId} Đã kiểm tra gần đây, bỏ qua`)
+                continue;
+            }
+
+            LAST_CHECK_TIMES[appId] = now;
+            $.setdata(JSON.stringify(LAST_CHECK_TIMES), 'tf_last_check_times');
+
+            let headerIndex = 0;
+            let result;
+            while (headerIndex < HeadersList.length) {
+                const headers = HeadersList[headerIndex];
+                const lastUse = LAST_HEADER_USE[headerIndex] || 0;
+                if (now - lastUse < interval) {
+                    headerIndex++;
+                    continue;
+                }
+                result = await TF_Join(appId, headers)
+                if (result === 'header_not_valid') {
+                    headerIndex++;
+                } else if (result === 'app_not_exist') {
+                    APP_IDS.splice(inArray(app_id), 1)
+                    $.setdata(APP_IDS.join(','), 'tf_app_ids')
+                    break;
+                } else {
+                    $.log(result)
+                    if (result.includes('Tham gia thành công')) {
                         APP_IDS[APP_IDS.indexOf(app_id)] = `${app_id.replace('#0', '#1')}`
                         $.setdata(APP_IDS.join(','), 'tf_app_ids')
-                        break
-                    } else {
-                        $.log(`${appId}(${appData.data.app.name})`, `${appData.data.message}`)
                     }
-                } catch (err) {
-                    $.log(err)
-                    break
+                    LAST_HEADER_USE[headerIndex] = now;
+                    $.setdata(JSON.stringify(LAST_HEADER_USE), 'tf_last_header_use')
+                    break;
                 }
             }
+
             $.log('================================')
             $.log(appId + ' Thực thi hoàn tất')
             $.log('================================')
@@ -152,6 +159,7 @@ const TF_Join = (app_id) => {
 })()
     .catch((e) => $.log('', `❗️${$.name}, Lỗi!`, e))
     .finally(() => $.done({}))
+
 
 
 // prettier-ignore
